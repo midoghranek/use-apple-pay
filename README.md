@@ -1,160 +1,556 @@
-# TSDX React User Guide
+# use-apple-pay
 
-Congrats! You just saved yourself hours of work by bootstrapping this project with TSDX. Let’s get you oriented with what’s here and how to use it.
+A React library for integrating Apple Pay into your web applications with ease. This package provides React hooks and components to handle Apple Pay payments seamlessly.
 
-> This TSDX setup is meant for developing React component libraries (not apps!) that can be published to NPM. If you’re looking to build a React-based app, you should use `create-react-app`, `razzle`, `nextjs`, `gatsby`, or `react-static`.
+## Table of Contents
 
-> If you’re new to TypeScript and React, checkout [this handy cheatsheet](https://github.com/sw-yx/react-typescript-cheatsheet/)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [API Reference](#api-reference)
+  - [useApplePay Hook](#useapplepay-hook)
+  - [ApplePayButton Component](#applepaybutton-component)
+  - [useScript Hook](#usescript-hook)
+  - [Types](#types)
+- [Examples](#examples)
+- [Browser Support](#browser-support)
+- [Development](#development)
+- [License](#license)
 
-## Commands
-
-TSDX scaffolds your new library inside `/src`, and also sets up a [Parcel-based](https://parceljs.org) playground for it inside `/example`.
-
-The recommended workflow is to run TSDX in one terminal:
-
-```bash
-npm start # or yarn start
-```
-
-This builds to `/dist` and runs the project in watch mode so any edits you save inside `src` causes a rebuild to `/dist`.
-
-Then run the example inside another:
+## Installation
 
 ```bash
-cd example
-npm i # or yarn to install dependencies
-npm start # or yarn start
+npm install use-apple-pay
 ```
 
-The default example imports and live reloads whatever is in `/dist`, so if you are seeing an out of date component, make sure TSDX is running in watch mode like we recommend above. **No symlinking required**, we use [Parcel's aliasing](https://parceljs.org/module_resolution.html#aliases).
+or
 
-To do a one-off build, use `npm run build` or `yarn build`.
-
-To run tests, use `npm test` or `yarn test`.
-
-## Configuration
-
-Code quality is set up for you with `prettier`, `husky`, and `lint-staged`. Adjust the respective fields in `package.json` accordingly.
-
-### Jest
-
-Jest tests are set up to run with `npm test` or `yarn test`.
-
-### Bundle analysis
-
-Calculates the real cost of your library using [size-limit](https://github.com/ai/size-limit) with `npm run size` and visulize it with `npm run analyze`.
-
-#### Setup Files
-
-This is the folder structure we set up for you:
-
-```txt
-/example
-  index.html
-  index.tsx       # test your component here in a demo app
-  package.json
-  tsconfig.json
-/src
-  index.tsx       # EDIT THIS
-/test
-  blah.test.tsx   # EDIT THIS
-.gitignore
-package.json
-README.md         # EDIT THIS
-tsconfig.json
+```bash
+yarn add use-apple-pay
 ```
 
-#### React Testing Library
+## Quick Start
 
-We do not set up `react-testing-library` for you yet, we welcome contributions and documentation on this.
+Here's a basic example of how to use use-apple-pay in your React application:
 
-### Rollup
+```tsx
+import React, { useState } from 'react';
+import { ApplePayButton, useApplePay } from 'use-apple-pay';
+import type { PaymentRequest, OnPaymentAuthorized, OnValidateMerchant, OnCancel } from 'use-apple-pay';
 
-TSDX uses [Rollup](https://rollupjs.org) as a bundler and generates multiple rollup configs for various module formats and build settings. See [Optimizations](#optimizations) for details.
+const App = () => {
+  const [amount, setAmount] = useState('1.00');
 
-### TypeScript
+  const paymentRequest: PaymentRequest = {
+    countryCode: 'US',
+    currencyCode: 'USD',
+    supportedNetworks: ['visa', 'masterCard'],
+    merchantCapabilities: ['supports3DS'],
+    total: {
+      label: 'Total',
+      amount: amount,
+    },
+  };
 
-`tsconfig.json` is set up to interpret `dom` and `esnext` types, as well as `react` for `jsx`. Adjust according to your needs.
+  const onPaymentAuthorized: OnPaymentAuthorized = async (event, session) => {
+    try {
+      const response = await fetch('/api/payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: event.payment.token,
+        }),
+      });
+      
+      if (response.ok) {
+        session.completePayment(ApplePaySession.STATUS_SUCCESS);
+      } else {
+        session.completePayment(ApplePaySession.STATUS_FAILURE);
+      }
+    } catch (error) {
+      session.completePayment(ApplePaySession.STATUS_FAILURE);
+    }
+  };
 
-## Continuous Integration
+  const onValidateMerchant: OnValidateMerchant = async (event, session) => {
+    try {
+      const response = await fetch('/api/merchant-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          validationURL: event.validationURL,
+        }),
+      });
+      
+      const merchantSession = await response.json();
+      session.completeMerchantValidation(merchantSession);
+    } catch (error) {
+      console.error('Merchant validation failed:', error);
+    }
+  };
 
-### GitHub Actions
+  const onCancel: OnCancel = (event, session) => {
+    console.log('Payment cancelled by user');
+  };
 
-Two actions are added by default:
+  const { applePayClickHandler } = useApplePay({
+    paymentRequest,
+    onPaymentAuthorized,
+    onValidateMerchant,
+    onCancel,
+    dependencies: [amount],
+  });
 
-- `main` which installs deps w/ cache, lints, tests, and builds on all pushes against a Node and OS matrix
-- `size` which comments cost comparison of your library on every pull request using [`size-limit`](https://github.com/ai/size-limit)
+  return (
+    <div>
+      {/* Using the built-in Apple Pay button */}
+      <ApplePayButton buttonstyle="black" locale="en-US" type="pay" />
+      
+      {/* Or use a custom button */}
+      <button onClick={applePayClickHandler}>
+        Pay with Apple Pay
+      </button>
+    </div>
+  );
+};
 
-## Optimizations
+export default App;
+```
 
-Please see the main `tsdx` [optimizations docs](https://github.com/palmerhq/tsdx#optimizations). In particular, know that you can take advantage of development-only optimizations:
+## API Reference
 
-```js
-// ./types/index.d.ts
-declare var __DEV__: boolean;
+### useApplePay Hook
 
-// inside your code...
-if (__DEV__) {
-  console.log('foo');
+The main hook for handling Apple Pay functionality.
+
+#### Parameters
+
+```typescript
+interface UseApplePayConfigs {
+  paymentRequest: PaymentRequest;
+  onValidateMerchant: OnValidateMerchant;
+  onPaymentAuthorized: OnPaymentAuthorized;
+  onCancel: OnCancel;
+  dependencies?: any[];
 }
 ```
 
-You can also choose to install and use [invariant](https://github.com/palmerhq/tsdx#invariant) and [warning](https://github.com/palmerhq/tsdx#warning) functions.
+- **paymentRequest** (`PaymentRequest`): The Apple Pay payment request configuration
+- **onValidateMerchant** (`OnValidateMerchant`): Callback function called when merchant validation is required
+- **onPaymentAuthorized** (`OnPaymentAuthorized`): Callback function called when payment is authorized
+- **onCancel** (`OnCancel`): Callback function called when payment is cancelled
+- **dependencies** (`any[]`, optional): Array of dependencies that will trigger re-initialization of the Apple Pay session
 
-## Module Formats
+#### Returns
 
-CJS, ESModules, and UMD module formats are supported.
+```typescript
+{
+  applePayClickHandler: VoidFunction;
+}
+```
 
-The appropriate paths are configured in `package.json` and `dist/index.js` accordingly. Please report if any issues are found.
+- **applePayClickHandler**: Function to trigger Apple Pay payment flow (can be used with custom buttons)
 
-## Deploying the Example Playground
+#### Example
 
-The Playground is just a simple [Parcel](https://parceljs.org) app, you can deploy it anywhere you would normally deploy that. Here are some guidelines for **manually** deploying with the Netlify CLI (`npm i -g netlify-cli`):
+```tsx
+const { applePayClickHandler } = useApplePay({
+  paymentRequest: {
+    countryCode: 'US',
+    currencyCode: 'USD',
+    supportedNetworks: ['visa', 'masterCard'],
+    merchantCapabilities: ['supports3DS'],
+    total: {
+      label: 'Total',
+      amount: '10.00',
+    },
+  },
+  onValidateMerchant: async (event, session) => {
+    // Handle merchant validation
+  },
+  onPaymentAuthorized: async (event, session) => {
+    // Handle payment authorization
+  },
+  onCancel: (event, session) => {
+    // Handle payment cancellation
+  },
+  dependencies: [amount], // Re-initialize when amount changes
+});
+```
+
+### ApplePayButton Component
+
+A pre-styled Apple Pay button component that follows Apple's design guidelines.
+
+#### Props
+
+```typescript
+interface ApplePayButtonProps {
+  readonly buttonstyle?: 'black' | 'white' | 'white-outline';
+  readonly type?: 'plain' | 'buy' | 'donate' | 'pay';
+  readonly locale?: ApplePayLocales;
+  readonly onClick?: React.MouseEventHandler<HTMLButtonElement>;
+}
+```
+
+- **buttonstyle** (`'black' | 'white' | 'white-outline'`, optional): Visual style of the button (default: `'black'`)
+- **type** (`'plain' | 'buy' | 'donate' | 'pay'`, optional): Button text type (default: `'pay'`)
+- **locale** (`ApplePayLocales`, optional): Locale for button text (default: `'en-US'`)
+- **onClick** (`React.MouseEventHandler`, optional): Custom click handler
+
+#### Example
+
+```tsx
+<ApplePayButton 
+  buttonstyle="black" 
+  type="buy" 
+  locale="en-US" 
+/>
+```
+
+### Types
+
+#### PaymentRequest
+
+Based on Apple's `ApplePayJS.ApplePayPaymentRequest` interface.
+
+```typescript
+type PaymentRequest = ApplePayJS.ApplePayPaymentRequest;
+```
+
+#### Event Handlers
+
+```typescript
+type OnValidateMerchant = (
+  event: ApplePayJS.ApplePayValidateMerchantEvent,
+  session: ApplePaySession
+) => void;
+
+type OnPaymentAuthorized = (
+  event: ApplePayJS.ApplePayPaymentAuthorizedEvent,
+  session: ApplePaySession
+) => void;
+
+type OnCancel = (
+  event: ApplePayJS.Event,
+  session: ApplePaySession
+) => void;
+```
+
+#### ApplePayLocales
+
+Supported locales for the Apple Pay button:
+
+```typescript
+type ApplePayLocales = 
+  | 'ar-AB' | 'ca-ES' | 'cs-CZ' | 'da-DK' | 'de-DE' 
+  | 'el-GR' | 'en-AU' | 'en-GB' | 'en-US' | 'es-ES' 
+  | 'es-MX' | 'fi-FI' | 'fr-CA' | 'fr-FR' | 'he-IL' 
+  | 'hi-IN' | 'hr-HR' | 'hu-HU' | 'id-ID' | 'it-IT' 
+  | 'ja-JP' | 'ko-KR' | 'ms-MY' | 'nb-NO' | 'nl-NL' 
+  | 'pl-PL' | 'pt-BR' | 'pt-PT' | 'ro-RO' | 'ru-RU' 
+  | 'sk-SK' | 'sv-SE' | 'th-TH' | 'tr-TR' | 'uk-UA' 
+  | 'vi-VN' | 'zh-CN' | 'zh-HK' | 'zh-TW';
+```
+
+## Examples
+
+### Complete Payment Flow
+
+```tsx
+import React, { useState } from 'react';
+import { ApplePayButton, useApplePay } from 'use-apple-pay';
+
+const CheckoutPage = () => {
+  const [cartTotal, setCartTotal] = useState('25.99');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const paymentRequest = {
+    countryCode: 'US',
+    currencyCode: 'USD',
+    supportedNetworks: ['visa', 'masterCard', 'amex'],
+    merchantCapabilities: ['supports3DS'],
+    total: {
+      label: 'Your Store',
+      amount: cartTotal,
+    },
+    lineItems: [
+      {
+        label: 'Product',
+        amount: '20.99',
+      },
+      {
+        label: 'Shipping',
+        amount: '5.00',
+      },
+    ],
+  };
+
+  const onPaymentAuthorized = async (event, session) => {
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch('/api/process-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          paymentToken: event.payment.token,
+          billingContact: event.payment.billingContact,
+          shippingContact: event.payment.shippingContact,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        session.completePayment(ApplePaySession.STATUS_SUCCESS);
+        // Redirect to success page
+        window.location.href = '/payment-success';
+      } else {
+        session.completePayment(ApplePaySession.STATUS_FAILURE);
+        alert('Payment failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Payment processing error:', error);
+      session.completePayment(ApplePaySession.STATUS_FAILURE);
+      alert('An error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onValidateMerchant = async (event, session) => {
+    try {
+      const response = await fetch('/api/validate-merchant', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          validationURL: event.validationURL,
+          displayName: 'Your Store',
+        }),
+      });
+
+      const merchantSession = await response.json();
+      session.completeMerchantValidation(merchantSession);
+    } catch (error) {
+      console.error('Merchant validation failed:', error);
+    }
+  };
+
+  const onCancel = () => {
+    setIsLoading(false);
+    console.log('Payment was cancelled');
+  };
+
+  useApplePay({
+    paymentRequest,
+    onPaymentAuthorized,
+    onValidateMerchant,
+    onCancel,
+    dependencies: [cartTotal],
+  });
+
+  return (
+    <div className="checkout">
+      <h2>Checkout</h2>
+      <div className="total">Total: ${cartTotal}</div>
+      
+      {isLoading ? (
+        <div>Processing payment...</div>
+      ) : (
+        <ApplePayButton 
+          buttonstyle="black" 
+          type="buy" 
+          locale="en-US" 
+        />
+      )}
+    </div>
+  );
+};
+```
+
+### Using Custom Button
+
+```tsx
+import React from 'react';
+import { useApplePay } from 'use-apple-pay';
+
+const CustomPaymentButton = () => {
+  const { applePayClickHandler } = useApplePay({
+    paymentRequest: {
+      countryCode: 'US',
+      currencyCode: 'USD',
+      supportedNetworks: ['visa', 'masterCard'],
+      merchantCapabilities: ['supports3DS'],
+      total: {
+        label: 'Custom Store',
+        amount: '15.00',
+      },
+    },
+    onValidateMerchant: async (event, session) => {
+      // Handle validation
+    },
+    onPaymentAuthorized: async (event, session) => {
+      // Handle payment
+    },
+    onCancel: () => {
+      // Handle cancellation
+    },
+  });
+
+  return (
+    <button 
+      onClick={applePayClickHandler}
+      className="custom-apple-pay-btn"
+      style={{
+        backgroundColor: '#000',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '8px',
+        padding: '12px 24px',
+        fontSize: '16px',
+        cursor: 'pointer',
+      }}
+    >
+      🍎 Pay with Apple Pay
+    </button>
+  );
+};
+```
+
+## Browser Support
+
+This library works in browsers that support Apple Pay on the web:
+
+- **Safari** on macOS and iOS
+- **Chrome**, **Edge**, and **Firefox** on devices with Touch ID or Face ID
+- Requires HTTPS in production
+
+### Checking Apple Pay Availability
+
+```typescript
+// Check if Apple Pay is available
+if (window.ApplePaySession && ApplePaySession.canMakePayments()) {
+  // Apple Pay is available
+  console.log('Apple Pay is supported');
+} else {
+  // Apple Pay is not available
+  console.log('Apple Pay is not supported on this device/browser');
+}
+```
+
+## Development
+
+### Prerequisites
+
+- Node.js >= 10
+- React >= 16
+
+### Building
 
 ```bash
-cd example # if not already in the example folder
-npm run build # builds to dist
-netlify deploy # deploy the dist folder
+npm run build
 ```
 
-Alternatively, if you already have a git repo connected, you can set up continuous deployment with Netlify:
+### Running the Example
 
 ```bash
-netlify init
-# build command: yarn build && cd example && yarn && yarn build
-# directory to deploy: example/dist
-# pick yes for netlify.toml
+cd example
+npm install
+npm start
 ```
 
-## Named Exports
+### Testing
 
-Per Palmer Group guidelines, [always use named exports.](https://github.com/palmerhq/typescript#exports) Code split inside your React app instead of your React library.
-
-## Including Styles
-
-There are many ways to ship styles, including with CSS-in-JS. TSDX has no opinion on this, configure how you like.
-
-For vanilla CSS, you can include it at the root directory and add it to the `files` section in your `package.json`, so that it can be imported separately by your users and run through their bundler's loader.
-
-## Publishing to NPM
-
-We recommend using [np](https://github.com/sindresorhus/np).
-
-## Usage with Lerna
-
-When creating a new package with TSDX within a project set up with Lerna, you might encounter a `Cannot resolve dependency` error when trying to run the `example` project. To fix that you will need to make changes to the `package.json` file _inside the `example` directory_.
-
-The problem is that due to the nature of how dependencies are installed in Lerna projects, the aliases in the example project's `package.json` might not point to the right place, as those dependencies might have been installed in the root of your Lerna project.
-
-Change the `alias` to point to where those packages are actually installed. This depends on the directory structure of your Lerna project, so the actual path might be different from the diff below.
-
-```diff
-   "alias": {
--    "react": "../node_modules/react",
--    "react-dom": "../node_modules/react-dom"
-+    "react": "../../../node_modules/react",
-+    "react-dom": "../../../node_modules/react-dom"
-   },
+```bash
+npm test
 ```
 
-An alternative to fixing this problem would be to remove aliases altogether and define the dependencies referenced as aliases as dev dependencies instead. [However, that might cause other problems.](https://github.com/palmerhq/tsdx/issues/64)
+### Linting
+
+```bash
+npm run lint
+```
+
+## Server-Side Requirements
+
+To use Apple Pay, you'll need to implement server endpoints for:
+
+1. **Merchant Validation**: Validate your merchant with Apple
+2. **Payment Processing**: Process the encrypted payment token
+
+### Example Server Implementation (Node.js/Express)
+
+```javascript
+// Merchant validation endpoint
+app.post('/api/validate-merchant', async (req, res) => {
+  const { validationURL } = req.body;
+  
+  try {
+    const response = await fetch(validationURL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        merchantIdentifier: 'your.merchant.id',
+        displayName: 'Your Store Name',
+        initiative: 'web',
+        initiativeContext: 'yourdomain.com',
+      }),
+      // Include your merchant certificate for authentication
+    });
+    
+    const merchantSession = await response.json();
+    res.json(merchantSession);
+  } catch (error) {
+    res.status(500).json({ error: 'Merchant validation failed' });
+  }
+});
+
+// Payment processing endpoint
+app.post('/api/process-payment', async (req, res) => {
+  const { paymentToken } = req.body;
+  
+  try {
+    // Process the payment token with your payment processor
+    // (Stripe, Square, etc.)
+    const paymentResult = await processPaymentToken(paymentToken);
+    
+    res.json({ success: true, transactionId: paymentResult.id });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+```
+
+## Security Considerations
+
+- Always validate payments on your server
+- Use HTTPS in production
+- Properly configure your Apple Pay merchant certificate
+- Validate the payment token before processing
+- Implement proper error handling
+
+## License
+
+MIT © [midoghranek](https://github.com/midoghranek)
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## Support
+
+If you encounter any issues or have questions, please [open an issue](https://github.com/midoghranek/use-apple-pay/issues) on GitHub.
