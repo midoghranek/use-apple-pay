@@ -1,0 +1,55 @@
+# Source files (already included via "files" in package.json)
+example/
+.tsdx.cache/
+scripts/
+
+# Development files
+*.log
+*.tgz
+.DS_Store
+.vscode/
+.idea/
+.nyc_output/
+coverage/
+node_modules/
+
+# Package manager files
+yarn.lock
+package-lock.json
+.yarn/
+.pnp.*
+
+# Git files
+.git/
+.gitignore
+
+# CI/CD files
+.github/
+.travis.yml
+.circleci/
+
+# Development configuration
+.eslintrc*
+.prettierrc*
+jest.config.*
+babel.config.*
+rollup.config.*
+webpack.config.*
+
+# Environment files
+.env*
+
+# Test files
+test/
+tests/
+__tests__/
+*.test.*
+*.spec.*
+
+# Documentation source (README.md is included)
+docs/
+PUBLISHING.md
+
+# Temporary files
+tmp/
+temp/
