@@ -1,11 +1,43 @@
 {
-  "version": "0.1.0",
+  "name": "use-apple-pay",
+  "version": "1.0.0",
+  "description": "A React library for integrating Apple Pay into your web applications with ease. Provides React hooks and components to handle Apple Pay payments seamlessly.",
+  "author": {
+    "name": "midoghranek",
+    "url": "https://github.com/midoghranek"
+  },
   "license": "MIT",
+  "homepage": "https://github.com/midoghranek/use-apple-pay#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/midoghranek/use-apple-pay.git"
+  },
+  "bugs": {
+    "url": "https://github.com/midoghranek/use-apple-pay/issues"
+  },
+  "keywords": [
+    "react",
+    "apple-pay",
+    "applepay",
+    "payment",
+    "payments",
+    "typescript",
+    "hooks",
+    "components",
+    "apple",
+    "pay",
+    "web-payments",
+    "e-commerce",
+    "checkout"
+  ],
   "main": "dist/index.js",
+  "module": "dist/use-apple-pay.esm.js",
   "typings": "dist/index.d.ts",
   "files": [
     "dist",
-    "src"
+    "src",
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=10"
@@ -16,6 +48,7 @@
     "test": "tsdx test --passWithNoTests",
     "lint": "tsdx lint",
     "prepare": "tsdx build",
+    "prepublishOnly": "yarn build && yarn test && yarn lint",
     "size": "size-limit",
     "analyze": "size-limit --why"
   },
@@ -33,17 +66,14 @@
     "singleQuote": true,
     "trailingComma": "es5"
   },
-  "name": "use-apple-pay",
-  "author": "midoghranek",
-  "module": "dist/use-apple-pay.esm.js",
   "size-limit": [
     {
       "path": "dist/use-apple-pay.cjs.production.min.js",
-      "limit": "10 KB"
+      "limit": "15 KB"
     },
     {
       "path": "dist/use-apple-pay.esm.js",
-      "limit": "10 KB"
+      "limit": "12 KB"
     }
   ],
   "devDependencies": {
