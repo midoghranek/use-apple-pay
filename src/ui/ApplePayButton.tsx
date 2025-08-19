@@ -3,11 +3,20 @@ import { ApplePayButtonProps } from '../types';
 import styled from '@emotion/styled';
 import { useScript } from '../hooks/useScript';
 
+// Declare the custom element for TypeScript
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'apple-pay-button': ApplePayButtonProps;
+    }
+  }
+}
+
 export const ApplePayButton: FC<ApplePayButtonProps> = props => {
   useScript('https://applepay.cdn-apple.com/jsapi/v1/apple-pay-sdk.js');
   return (
     <ApplePayButtonStyled>
-      {createElement<ApplePayButtonProps, HTMLElement>('apple-pay-button', {
+      {createElement('apple-pay-button', {
         buttonstyle: props.buttonstyle || 'black',
         type: props.type || 'pay',
         locale: props.locale || 'en-US',

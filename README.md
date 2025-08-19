@@ -9,7 +9,6 @@ A React library for integrating Apple Pay into your web applications with ease. 
 - [API Reference](#api-reference)
   - [useApplePay Hook](#useapplepay-hook)
   - [ApplePayButton Component](#applepaybutton-component)
-  - [useScript Hook](#usescript-hook)
   - [Types](#types)
 - [Examples](#examples)
 - [Browser Support](#browser-support)
@@ -433,6 +432,14 @@ This library works in browsers that support Apple Pay on the web:
 - **Chrome**, **Edge**, and **Firefox** on devices with Touch ID or Face ID
 - Requires HTTPS in production
 
+## Node.js Support
+
+This package supports Node.js versions:
+- ✅ Node.js 16.x
+- ✅ Node.js 18.x (LTS)
+- ✅ Node.js 20.x (LTS)
+- ✅ Node.js 22.x (Latest)
+
 ### Checking Apple Pay Availability
 
 ```typescript
@@ -450,7 +457,7 @@ if (window.ApplePaySession && ApplePaySession.canMakePayments()) {
 
 ### Prerequisites
 
-- Node.js >= 10
+- Node.js >= 16 (supports up to Node.js 22)
 - React >= 16
 
 ### Building

@@ -65,5 +65,4 @@ export type ApplePayButtonProps = {
   readonly buttonstyle?: 'black' | 'white' | 'white-outline';
   readonly type?: 'plain' | 'buy' | 'donate' | 'pay';
   readonly locale?: ApplePayLocales;
-  readonly onClick?: React.MouseEventHandler<HTMLButtonElement>;
 };

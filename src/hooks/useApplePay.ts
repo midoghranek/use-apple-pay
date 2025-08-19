@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useCallback, useEffect } from 'react';
 import { UseApplePayConfigs } from '../types';
 
@@ -14,7 +15,14 @@ export const useApplePay = ({
     session.onvalidatemerchant = event => onValidateMerchant(event, session);
     session.onpaymentauthorized = event => onPaymentAuthorized(event, session);
     session.oncancel = event => onCancel(event, session);
-  }, [...dependencies]);
+    session.begin();
+  }, [
+    paymentRequest,
+    onValidateMerchant,
+    onPaymentAuthorized,
+    onCancel,
+    ...dependencies,
+  ]);
 
   useEffect(() => {
     document
