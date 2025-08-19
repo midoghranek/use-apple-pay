@@ -538,6 +538,47 @@ app.post('/api/process-payment', async (req, res) => {
 });
 ```
 
+## Testing
+
+This package includes a comprehensive test suite to ensure reliability and type safety.
+
+### Running Tests
+
+```bash
+# Run all tests
+yarn test
+
+# Run tests in watch mode
+yarn test:watch
+
+# Run tests with coverage report
+yarn test:coverage
+```
+
+### Test Structure
+
+The test suite includes:
+- **Unit tests** for hooks (`useApplePay`, `useScript`)
+- **Component tests** for React components (`ApplePayButton`)
+- **Type tests** to verify TypeScript type definitions
+- **Integration tests** for full payment flows
+
+### Testing in Your Project
+
+When using this package in your project, you can mock the Apple Pay functionality for testing:
+
+```typescript
+// Mock ApplePaySession for testing
+Object.defineProperty(global, 'ApplePaySession', {
+  value: {
+    canMakePayments: jest.fn().mockReturnValue(true),
+    STATUS_SUCCESS: 1,
+    STATUS_FAILURE: 2,
+  },
+  writable: true,
+});
+```
+
 ## Security Considerations
 
 - Always validate payments on your server
